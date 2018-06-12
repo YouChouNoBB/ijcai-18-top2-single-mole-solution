@@ -117,6 +117,14 @@ def property_feature(org):
     org['top10'] = org['top'].apply(lambda x: x[5])
     return org[['instance_id','top1','top2','top3','top4','top5','top10']]
 
+#类别特征全部编码
+def encode(data):
+    id_features=['shop_id', 'item_id', 'user_id', 'item_brand_id', 'item_city_id', 'user_gender_id','item_property_list', 'predict_category_property',
+                      'user_occupation_id', 'context_page_id','top1','top2','top3','top4','top5','top10','query1','query','cate']
+    for feature in id_features:
+        data[feature] = LabelEncoder().fit_transform(data[feature])
+    return data
+
 if os.path.exists('../data/origion_concat.csv'):
     # data=pd.read_csv('../data/origion_concat.csv')
     print('data prepared ~')
@@ -150,18 +158,5 @@ else:
     # data.loc[data['same_property']>5,'same_property']=5
     data=fillna(data.copy())
     data=pd.merge(data,property_feature(data),on='instance_id',how='left') #拆分属性
+    data=encode(data)
     data.to_csv('../data/origion_concat.csv',index=False)
-
-
-def LGB_test(train_x,train_y,test_x,test_y):
-    from multiprocessing import cpu_count
-    import lightgbm as lgb
-    print("LGB test")
-    clf = lgb.LGBMClassifier(
-        boosting_type='gbdt', num_leaves=31, reg_alpha=0.0, reg_lambda=1,
-        max_depth=-1, n_estimators=3000, objective='binary',
-        subsample=0.7, colsample_bytree=0.7, subsample_freq=1,  # colsample_bylevel=0.7,
-        learning_rate=0.01, min_child_weight=25,random_state=2018,n_jobs=cpu_count()-2
-    )
-    clf.fit(train_x, train_y,eval_set=[(train_x,train_y),(test_x,test_y)],early_stopping_rounds=100)
-    return (clf.best_score_['valid_0']['binary_logloss'],clf.best_score_['valid_1']['binary_logloss'])
