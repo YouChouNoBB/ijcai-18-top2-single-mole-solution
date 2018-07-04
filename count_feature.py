@@ -31,6 +31,21 @@ def all_days_feature(org):
     train.drop(col, axis=1).to_csv('../data/7days_cvr_feature.csv',index=False)
     return train
 
+"""
+用户行为编码
+"""
+def user_encoder_feature(org):
+    data = org[org['day'] < 7]
+    train = org[org['day'] == 7]
+    user7 = data.groupby('user_id', as_index=False)['is_trade'].agg({'user_buy': 'sum', 'user_cnt': 'count'})
+    user7['user_allday_buy_click']=user7.apply(lambda x:str(x['user_buy'])+'-'+str(x['user_cnt']),axis=1)
+    data=org[org['day']==6]
+    user6=data.groupby('user_id', as_index=False)['is_trade'].agg({'user_buy': 'sum', 'user_cnt': 'count'})
+    user6['user_6day_buy_click'] = user6.apply(lambda x: str(x['user_buy']) + '-' + str(x['user_cnt']), axis=1)
+    train=pd.merge(train,user7,on='user_id',how='left')
+    train = pd.merge(train, user6, on='user_id', how='left')
+    train[['instance_id','user_allday_buy_click','user_6day_buy_click']].to_csv('../data/user_buy_click_feature.csv')
+	
 
 """
 7号前一天，6号的统计特征
@@ -219,6 +234,7 @@ def rank_today_feature(data):
 
 if __name__ == '__main__':
     org=pd.read_csv('../data/origion_concat.csv')
+	user_encoder_feature(org)
     rank_7days_feature(all_days_feature(org))
     rank_6day_feature(latest_day_feature(org))
     rank_today_feature(today_cvr_feature(org))
